@@ -50,11 +50,10 @@ try
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();
-        app.MapScalarReferencePage(options =>
+        app.MapScalarApiReference(options =>
         {
             options.Title = "Monetra API";
             options.Theme = ScalarTheme.Default;
-            options.Layout = ScalarLayout.Classic;
             options.DefaultHttpClient = new(ScalarTarget.CSharp, ScalarClient.HttpClient);
         });
     }
