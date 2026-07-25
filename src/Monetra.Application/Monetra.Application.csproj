@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Monetra.Core\Monetra.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.3.25171.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Common\Behaviors\" />
+    <Folder Include="Common\DTOs\" />
+    <Folder Include="Common\Interfaces\" />
+    <Folder Include="Common\Mappings\" />
+    <Folder Include="Features\Admin\Commands\" />
+    <Folder Include="Features\Admin\Handlers\" />
+    <Folder Include="Features\Admin\Queries\" />
+    <Folder Include="Features\Auth\Commands\" />
+    <Folder Include="Features\Auth\Handlers\" />
+    <Folder Include="Features\Auth\Queries\" />
+    <Folder Include="Features\BankAccounts\Commands\" />
+    <Folder Include="Features\BankAccounts\Handlers\" />
+    <Folder Include="Features\BankAccounts\Queries\" />
+    <Folder Include="Features\Budgets\Commands\" />
+    <Folder Include="Features\Budgets\Handlers\" />
+    <Folder Include="Features\Budgets\Queries\" />
+    <Folder Include="Features\CreditCards\Commands\" />
+    <Folder Include="Features\CreditCards\Handlers\" />
+    <Folder Include="Features\CreditCards\Queries\" />
+    <Folder Include="Features\Dashboard\Handlers\" />
+    <Folder Include="Features\Dashboard\Queries\" />
+    <Folder Include="Features\Profile\Commands\" />
+    <Folder Include="Features\Profile\Handlers\" />
+    <Folder Include="Features\Profile\Queries\" />
+    <Folder Include="Features\Reports\Commands\" />
+    <Folder Include="Features\Reports\Handlers\" />
+    <Folder Include="Features\Reports\Queries\" />
+    <Folder Include="Features\TransactionCategories\Commands\" />
+    <Folder Include="Features\TransactionCategories\Handlers\" />
+    <Folder Include="Features\TransactionCategories\Queries\" />
+    <Folder Include="Features\Transactions\Commands\" />
+    <Folder Include="Features\Transactions\Handlers\" />
+    <Folder Include="Features\Transactions\Queries\" />
+    <Folder Include="Features\Transfers\Commands\" />
+    <Folder Include="Features\Transfers\Handlers\" />
+    <Folder Include="Features\Transfers\Queries\" />
+    <Folder Include="Features\Wallets\Commands\" />
+    <Folder Include="Features\Wallets\Handlers\" />
+    <Folder Include="Features\Wallets\Queries\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

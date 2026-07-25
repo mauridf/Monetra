@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Monetra.Api/Monetra.Api.csproj" />
+    <Project Path="src/Monetra.Application/Monetra.Application.csproj" />
+    <Project Path="src/Monetra.Core/Monetra.Core.csproj" />
+    <Project Path="src/Monetra.Infrastructure/Monetra.Infrastructure.csproj" />
+    <Project Path="src/Monetra.Scheduler/Monetra.Scheduler.csproj" />
+  </Folder>
+</Solution>

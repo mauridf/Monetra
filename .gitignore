@@ -1,0 +1,39 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+*.sln.docstates
+
+## IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+## Logs
+logs/
+*.log
+
+## Environment
+.env
+.env.local
+appsettings.*.local.json
+
+## Uploads
+uploads/
+temp/
+
+## Database
+*.db
+*.db-shm
+*.db-wal
+
+## Docker
+docker-compose.override.yml
+
+## OS
+.DS_Store
+Thumbs.db
