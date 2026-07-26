@@ -92,7 +92,7 @@ public static class DependencyInjection
 
         // Repositories
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
-        services.AddScoped<UserRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<BankAccountRepository>();
         services.AddScoped<TransactionRepository>();
         services.AddScoped<TransactionCategoryRepository>();
@@ -105,6 +105,8 @@ public static class DependencyInjection
         // Serviços
         services.AddScoped<Application.Common.Interfaces.IPasswordHasher, PasswordService>();
         services.AddScoped<Application.Common.Interfaces.ITokenService, TokenService>();
+        services.AddScoped<ITwoFactorService, TwoFactorService>();
+        services.AddScoped<IReportGeneratorService, External.Reports.QuestPdfReportService>();
 
         return services;
     }

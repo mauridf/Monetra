@@ -48,7 +48,6 @@
     <Folder Include="Features\Wallets\Commands\" />
     <Folder Include="Features\Wallets\Handlers\" />
     <Folder Include="Features\Wallets\Queries\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
   <PropertyGroup>

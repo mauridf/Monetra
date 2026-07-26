@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Monetra.Core.Entities;
+using Monetra.Core.Interfaces;
 using Monetra.Infrastructure.Data;
 
 namespace Monetra.Infrastructure.Repositories;
 
-/// <summary>
-/// Repositório especializado para Users com queries customizadas.
-/// </summary>
-public class UserRepository : GenericRepository<User>
+public class UserRepository : GenericRepository<User>, IUserRepository
 {
     public UserRepository(MonetraDbContext context) : base(context)
     {
