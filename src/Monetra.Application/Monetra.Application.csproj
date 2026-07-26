@@ -7,15 +7,12 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.0.0" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     <PackageReference Include="MediatR" Version="12.4.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.4.25258.110" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Behaviors\" />
-    <Folder Include="Common\DTOs\" />
-    <Folder Include="Common\Interfaces\" />
-    <Folder Include="Common\Mappings\" />
     <Folder Include="Features\Admin\Commands\" />
     <Folder Include="Features\Admin\Handlers\" />
     <Folder Include="Features\Admin\Queries\" />
