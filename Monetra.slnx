@@ -6,4 +6,9 @@
     <Project Path="src/Monetra.Infrastructure/Monetra.Infrastructure.csproj" />
     <Project Path="src/Monetra.Scheduler/Monetra.Scheduler.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Monetra.Tests.E2E/Monetra.Tests.E2E.csproj" />
+    <Project Path="tests/Monetra.Tests.Integration/Monetra.Tests.Integration.csproj" />
+    <Project Path="tests/Monetra.Tests.Unit/Monetra.Tests.Unit.csproj" />
+  </Folder>
 </Solution>

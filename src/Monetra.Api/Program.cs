@@ -128,6 +128,17 @@ try
                     PermitLimit = 5,
                     Window = TimeSpan.FromMinutes(1)
                 }));
+
+        // Register: 3 req/hora
+        options.AddPolicy("RegisterEndpoint", context =>
+            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 3,
+                    Window = TimeSpan.FromHours(1)
+                }));
     });
 
     // Controllers + Filters

@@ -1,86 +1,67 @@
-using Quartz;
-using Serilog;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Monetra.Core.Entities;
-using Monetra.Core.Enums;
-using Monetra.Infrastructure.Data;
+using Monetra.Core.Interfaces;
+using Monetra.Infrastructure.Repositories;
+using Quartz;
 
 namespace Monetra.Scheduler.Jobs;
 
-/// <summary>
-/// Job que verifica orçamentos estourados e envia alertas.
-/// Executa toda segunda-feira às 09:00.
-/// </summary>
 [DisallowConcurrentExecution]
 public class BudgetAlertJob : IJob
 {
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<BudgetAlertJob> _logger;
+
+    public BudgetAlertJob(IServiceScopeFactory scopeFactory, ILogger<BudgetAlertJob> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
     public async Task Execute(IJobExecutionContext context)
     {
-        Log.Information("📊 Verificando alertas de orçamento...");
+        _logger.LogInformation("Verificando alertas de orçamento...");
 
         try
         {
-            using var scope = context.Scheduler?.Context
-                .Get<IServiceScopeFactory>()?.CreateScope()
-                ?? throw new InvalidOperationException("ServiceScopeFactory não disponível");
+            using var scope = _scopeFactory.CreateScope();
+            var budgetRepo = scope.ServiceProvider.GetRequiredService<BudgetRepository>();
+            var notificationRepo = scope.ServiceProvider.GetRequiredService<IRepository<Notification>>();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var now = DateTime.UtcNow;
 
-            var dbContext = scope.ServiceProvider.GetRequiredService<MonetraDbContext>();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<Core.Interfaces.IUnitOfWork>();
-
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-            // Buscar orçamentos ativos
-            var activeBudgets = await dbContext.Budgets
-                .Include(b => b.Categories)
-                    .ThenInclude(bc => bc.Category)
-                .Where(b => b.Status == "active")
-                .Where(b => b.StartDate <= today && b.EndDate >= today)
-                .ToListAsync();
-
-            var alertCount = 0;
+            var activeBudgets = await budgetRepo.FindAsync(
+                b => b.Status == "active" && b.StartDate <= DateOnly.FromDateTime(now) && b.EndDate >= DateOnly.FromDateTime(now));
 
             foreach (var budget in activeBudgets)
             {
-                foreach (var category in budget.Categories)
+                foreach (var cat in budget.Categories)
                 {
-                    if (category.IsNearLimit() || category.IsOverLimit())
+                    if (cat.IsOverLimit())
                     {
-                        var percentage = category.GetSpentPercentage();
-                        var severity = percentage >= 100 ? "danger" : "warning";
-                        var categoryName = category.Category?.Name ?? "Categoria";
-
                         var notification = Notification.Create(
-                            budget.UserId,
-                            NotificationType.BudgetExceeded.ToString(),
-                            percentage >= 100
-                                ? $"Orçamento estourado: {categoryName}"
-                                : $"Orçamento próximo do limite: {categoryName}",
-                            $"Você gastou {category.SpentAmount:C} de {category.LimitAmount:C} ({percentage:F1}%) " +
-                            $"em {categoryName} no orçamento '{budget.Name}'.",
-                            $"{{\"budgetId\":\"{budget.Id}\",\"categoryId\":\"{category.CategoryId}\",\"percentage\":{percentage}}}",
-                            "budget",
-                            budget.Id);
-
-                        await dbContext.Notifications.AddAsync(notification);
-                        alertCount++;
-
-                        Log.Information("Alerta de orçamento para usuário {UserId}: {CategoryName} - {Percentage:F1}%",
-                            budget.UserId, categoryName, percentage);
+                            budget.UserId, "BudgetExceeded",
+                            "Orçamento estourado", $"Categoria excedeu o limite em {cat.SpentAmount - cat.LimitAmount:C}",
+                            null, "budget", budget.Id);
+                        await notificationRepo.AddAsync(notification);
+                    }
+                    else if (cat.IsNearLimit())
+                    {
+                        var notification = Notification.Create(
+                            budget.UserId, "BudgetExceeded",
+                            "Orçamento próximo do limite", $"Categoria está a {100 - cat.GetSpentPercentage():F0}% do limite",
+                            null, "budget", budget.Id);
+                        await notificationRepo.AddAsync(notification);
                     }
                 }
             }
 
-            if (alertCount > 0)
-            {
-                await unitOfWork.SaveChangesAsync();
-            }
-
-            Log.Information("✅ {Count} alertas de orçamento enviados", alertCount);
+            await unitOfWork.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "❌ Erro ao verificar alertas de orçamento");
+            _logger.LogError(ex, "Erro ao verificar orçamentos");
             throw new JobExecutionException(ex, false);
         }
     }

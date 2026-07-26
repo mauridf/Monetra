@@ -1,67 +1,48 @@
-using Quartz;
-using Serilog;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Monetra.Infrastructure.Data;
+using Quartz;
 
 namespace Monetra.Scheduler.Jobs;
 
-/// <summary>
-/// Job de limpeza de dados antigos e temporários.
-/// Executa todo domingo às 03:00.
-/// </summary>
 [DisallowConcurrentExecution]
 public class CleanupJob : IJob
 {
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<CleanupJob> _logger;
+
+    public CleanupJob(IServiceScopeFactory scopeFactory, ILogger<CleanupJob> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
     public async Task Execute(IJobExecutionContext context)
     {
-        Log.Information("🧹 Iniciando limpeza de dados...");
+        _logger.LogInformation("Iniciando limpeza de dados antigos...");
 
         try
         {
-            using var scope = context.Scheduler?.Context
-                .Get<IServiceScopeFactory>()?.CreateScope()
-                ?? throw new InvalidOperationException("ServiceScopeFactory não disponível");
-
+            using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MonetraDbContext>();
 
-            var cutoffDate = DateTime.UtcNow.AddDays(-90); // 90 dias
-            var cleanedCount = 0;
+            var cutoff = DateTime.UtcNow.AddDays(-90);
 
-            // Limpar notificações lidas com mais de 30 dias
-            var oldNotifications = await dbContext.Notifications
-                .Where(n => n.IsRead && n.ReadAt < cutoffDate)
-                .Take(1000) // Limitar para evitar lock longo
-                .ToListAsync();
+            dbContext.Notifications.RemoveRange(
+                dbContext.Notifications.Where(n => n.IsRead && n.SentAt < cutoff));
 
-            dbContext.Notifications.RemoveRange(oldNotifications);
-            cleanedCount += oldNotifications.Count;
+            dbContext.ActivityLogs.RemoveRange(
+                dbContext.ActivityLogs.Where(a => a.CreatedAt < cutoff));
 
-            // Limpar logs de atividade antigos (mais de 90 dias)
-            var oldLogs = await dbContext.ActivityLogs
-                .Where(l => l.CreatedAt < cutoffDate)
-                .Take(1000)
-                .ToListAsync();
+            dbContext.OutboxMessages.RemoveRange(
+                dbContext.OutboxMessages.Where(m => m.Status == "sent" && m.SentAt < cutoff));
 
-            dbContext.ActivityLogs.RemoveRange(oldLogs);
-            cleanedCount += oldLogs.Count;
-
-            // Limpar mensagens de outbox processadas
-            var processedOutbox = await dbContext.OutboxMessages
-                .Where(m => m.Status == "sent" && m.ProcessedAt < cutoffDate)
-                .Take(1000)
-                .ToListAsync();
-
-            dbContext.OutboxMessages.RemoveRange(processedOutbox);
-            cleanedCount += processedOutbox.Count;
-
-            await dbContext.SaveChangesAsync();
-
-            Log.Information("✅ Limpeza concluída: {Count} registros removidos", cleanedCount);
+            var deleted = await dbContext.SaveChangesAsync();
+            _logger.LogInformation("{Count} registros antigos removidos", deleted);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "❌ Erro ao executar limpeza de dados");
+            _logger.LogError(ex, "Erro durante limpeza de dados");
             throw new JobExecutionException(ex, false);
         }
     }

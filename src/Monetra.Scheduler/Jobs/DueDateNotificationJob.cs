@@ -1,96 +1,69 @@
-using Quartz;
-using Serilog;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Monetra.Core.Entities;
 using Monetra.Core.Enums;
-using Monetra.Infrastructure.Data;
+using Monetra.Core.Interfaces;
+using Quartz;
 
 namespace Monetra.Scheduler.Jobs;
 
-/// <summary>
-/// Job que notifica usuários sobre contas a vencer.
-/// Executa diariamente às 08:00.
-/// </summary>
 [DisallowConcurrentExecution]
 public class DueDateNotificationJob : IJob
 {
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<DueDateNotificationJob> _logger;
+
+    public DueDateNotificationJob(IServiceScopeFactory scopeFactory, ILogger<DueDateNotificationJob> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
     public async Task Execute(IJobExecutionContext context)
     {
-        Log.Information("🔔 Iniciando notificações de contas a vencer...");
+        _logger.LogInformation("Gerando notificações de contas a vencer...");
 
         try
         {
-            using var scope = context.Scheduler?.Context
-                .Get<IServiceScopeFactory>()?.CreateScope()
-                ?? throw new InvalidOperationException("ServiceScopeFactory não disponível");
-
-            var dbContext = scope.ServiceProvider.GetRequiredService<MonetraDbContext>();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<Core.Interfaces.IUnitOfWork>();
+            using var scope = _scopeFactory.CreateScope();
+            var transactionRepo = scope.ServiceProvider.GetRequiredService<IRepository<Transaction>>();
+            var invoiceRepo = scope.ServiceProvider.GetRequiredService<IRepository<Invoice>>();
+            var notificationRepo = scope.ServiceProvider.GetRequiredService<IRepository<Notification>>();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var notifyDate = today.AddDays(3); // Notificar 3 dias antes
+            var threeDaysFromNow = today.AddDays(3);
 
-            // Buscar transações que vencem nos próximos 3 dias
-            var pendingTransactions = await dbContext.Transactions
-                .Where(t => t.Status == TransactionStatus.Pending)
-                .Where(t => t.DueDate.HasValue && t.DueDate.Value <= notifyDate)
-                .Where(t => t.DueDate.HasValue && t.DueDate.Value >= today)
-                .Where(t => t.DeletedAt == null)
-                .ToListAsync();
+            var dueTransactions = await transactionRepo.FindAsync(
+                t => t.DueDate >= today && t.DueDate <= threeDaysFromNow && t.Status == TransactionStatus.Pending);
 
-            var notificationCount = 0;
-
-            foreach (var transaction in pendingTransactions)
+            foreach (var tx in dueTransactions)
             {
-                var daysUntilDue = (transaction.DueDate!.Value.DayNumber - today.DayNumber);
-
                 var notification = Notification.Create(
-                    transaction.UserId,
-                    NotificationType.DueDate.ToString(),
-                    "Conta a vencer",
-                    $"A transação '{transaction.Description}' de {transaction.Amount:C} vence em {daysUntilDue} dia(s).",
-                    null,
-                    "transaction",
-                    transaction.Id);
-
-                await dbContext.Notifications.AddAsync(notification);
-                notificationCount++;
+                    tx.UserId, "DueDate",
+                    "Conta a vencer", $"A transação '{tx.Description}' vence em {tx.DueDate}",
+                    null, "transaction", tx.Id);
+                await notificationRepo.AddAsync(notification);
             }
 
-            // Verificar faturas próximas do vencimento
-            var nearDueInvoices = await dbContext.Invoices
-                .Where(i => i.Status == "closed" || i.Status == "open")
-                .Where(i => i.DueDate <= notifyDate && i.DueDate >= today)
-                .ToListAsync();
+            var dueInvoices = await invoiceRepo.FindAsync(
+                i => i.DueDate >= today && i.DueDate <= threeDaysFromNow && (i.Status == "open" || i.Status == "closed"));
 
-            foreach (var invoice in nearDueInvoices)
+            foreach (var inv in dueInvoices)
             {
-                var daysUntilDue = (invoice.DueDate.DayNumber - today.DayNumber);
-
                 var notification = Notification.Create(
-                    invoice.UserId,
-                    NotificationType.DueDate.ToString(),
-                    "Fatura próxima do vencimento",
-                    $"Fatura do cartão fecha em {daysUntilDue} dia(s). Valor: {invoice.TotalAmount:C}",
-                    null,
-                    "invoice",
-                    invoice.Id);
-
-                await dbContext.Notifications.AddAsync(notification);
-                notificationCount++;
+                    inv.UserId, "DueDate",
+                    "Fatura a vencer", $"Fatura de cartão de crédito vence em {inv.DueDate}",
+                    null, "invoice", inv.Id);
+                await notificationRepo.AddAsync(notification);
             }
 
-            if (notificationCount > 0)
-            {
-                await unitOfWork.SaveChangesAsync();
-            }
-
-            Log.Information("✅ {Count} notificações de vencimento enviadas", notificationCount);
+            await unitOfWork.SaveChangesAsync();
+            _logger.LogInformation("{Count} notificações de vencimento geradas", dueTransactions.Count() + dueInvoices.Count());
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "❌ Erro ao enviar notificações de vencimento");
+            _logger.LogError(ex, "Erro ao gerar notificações");
             throw new JobExecutionException(ex, false);
         }
     }

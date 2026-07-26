@@ -1,54 +1,45 @@
-using Quartz;
-using Serilog;
 using Microsoft.Extensions.DependencyInjection;
-using Monetra.Infrastructure.Repositories;
+using Microsoft.Extensions.Logging;
+using Monetra.Core.Interfaces;
+using Quartz;
 
 namespace Monetra.Scheduler.Jobs;
 
-/// <summary>
-/// Job que verifica e processa expiração de planos premium.
-/// Executa diariamente às 04:00.
-/// </summary>
 [DisallowConcurrentExecution]
 public class PremiumExpirationJob : IJob
 {
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<PremiumExpirationJob> _logger;
+
+    public PremiumExpirationJob(IServiceScopeFactory scopeFactory, ILogger<PremiumExpirationJob> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
     public async Task Execute(IJobExecutionContext context)
     {
-        Log.Information("⭐ Verificando expiração de planos premium...");
+        _logger.LogInformation("Verificando expiração de premium...");
 
         try
         {
-            using var scope = context.Scheduler?.Context
-                .Get<IServiceScopeFactory>()?.CreateScope()
-                ?? throw new InvalidOperationException("ServiceScopeFactory não disponível");
+            using var scope = _scopeFactory.CreateScope();
+            var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-            var userRepo = scope.ServiceProvider.GetRequiredService<UserRepository>();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<Core.Interfaces.IUnitOfWork>();
-
-            var expiredUsers = await userRepo.GetExpiredPremiumUsersAsync();
-
-            var updatedCount = 0;
-
-            foreach (var user in expiredUsers)
+            var expired = await userRepo.GetExpiredPremiumUsersAsync();
+            foreach (var user in expired)
             {
                 user.SetPremium(false, null);
                 userRepo.Update(user);
-                updatedCount++;
-
-                Log.Information("Premium expirado para usuário {UserId} ({Email})",
-                    user.Id, user.Email.Value);
             }
 
-            if (updatedCount > 0)
-            {
-                await unitOfWork.SaveChangesAsync();
-            }
-
-            Log.Information("✅ {Count} usuários tiveram premium removido", updatedCount);
+            await unitOfWork.SaveChangesAsync();
+            _logger.LogInformation("{Count} usuários tiveram premium expirado", expired.Count);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "❌ Erro ao processar expiração de premium");
+            _logger.LogError(ex, "Erro ao processar expiração de premium");
             throw new JobExecutionException(ex, false);
         }
     }

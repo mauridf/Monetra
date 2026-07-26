@@ -8,6 +8,7 @@ using Monetra.Infrastructure.External;
 using Monetra.Infrastructure.External.Cache;
 using Monetra.Infrastructure.External.MessageBus;
 using Monetra.Infrastructure.External.Storage;
+using Monetra.Infrastructure.Outbox;
 using Monetra.Infrastructure.Repositories;
 using Monetra.Infrastructure.Services;
 using StackExchange.Redis;
@@ -84,8 +85,9 @@ public static class DependencyInjection
             services.AddSingleton<IMessageBus, InMemoryMessageBus>();
         }
 
-        // Email
+        // Email / Notificações
         services.AddSingleton<SmtpEmailService>();
+        services.AddScoped<INotificationService, SmtpNotificationService>();
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -93,6 +95,7 @@ public static class DependencyInjection
         // Repositories
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPersonRepository, PersonRepository>();
         services.AddScoped<BankAccountRepository>();
         services.AddScoped<TransactionRepository>();
         services.AddScoped<TransactionCategoryRepository>();
@@ -101,6 +104,9 @@ public static class DependencyInjection
         services.AddScoped<CreditCardRepository>();
         services.AddScoped<InvoiceRepository>();
         services.AddScoped<BudgetRepository>();
+
+        // Outbox
+        services.AddHostedService<OutboxProcessor>();
 
         // Serviços
         services.AddScoped<Application.Common.Interfaces.IPasswordHasher, PasswordService>();
