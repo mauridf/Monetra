@@ -3,7 +3,7 @@ using Monetra.Core.Exceptions;
 
 namespace Monetra.Core.Entities;
 
-public class Invoice : Entity<Guid>
+public class Invoice : AggregateRoot<Guid>
 {
     public Guid CreditCardId { get; private set; }
     public CreditCard CreditCard { get; private set; } = null!;

@@ -23,7 +23,7 @@ public class RecurringTransaction : Entity<Guid>
     public int IntervalValue { get; private set; }
     public string? IntervalUnit { get; private set; }
     public int? DayOfMonth { get; private set; }
-    public int? DayOfWeek { get; private set; }
+    public int? DayOfWeekNumber { get; private set; }
     public int? MonthOfYear { get; private set; }
 
     // Ciclo
@@ -112,7 +112,7 @@ public class RecurringTransaction : Entity<Guid>
             MaxExecutions = maxExecutions,
             IntervalValue = intervalValue,
             DayOfMonth = dayOfMonth,
-            DayOfWeek = dayOfWeek,
+            DayOfWeekNumber = dayOfWeek,
             MonthOfYear = monthOfYear,
             NotifyBeforeDays = notifyBeforeDays
         };
@@ -183,7 +183,7 @@ public class RecurringTransaction : Entity<Guid>
         else
         {
             NextExecution = CalculateNextExecution(
-                RecurrenceType, NextExecution, IntervalValue, DayOfMonth, DayOfWeek, MonthOfYear);
+                RecurrenceType, NextExecution, IntervalValue, DayOfMonth, DayOfWeekNumber, MonthOfYear);
         }
 
         SetUpdatedAt();

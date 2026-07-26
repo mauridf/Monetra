@@ -5,9 +5,6 @@ using StackExchange.Redis;
 
 namespace Monetra.Infrastructure.External.Cache;
 
-/// <summary>
-/// Implementação do serviço de cache usando Redis.
-/// </summary>
 public class RedisCacheService : ICacheService
 {
     private readonly IDatabase _database;
@@ -33,7 +30,7 @@ public class RedisCacheService : ICacheService
             if (value.HasValue)
             {
                 _logger.LogDebug("Cache HIT: {Key}", key);
-                return JsonSerializer.Deserialize<T>(value!, JsonOptions);
+                return JsonSerializer.Deserialize<T>((string)value!, JsonOptions);
             }
 
             _logger.LogDebug("Cache MISS: {Key}", key);
@@ -42,7 +39,7 @@ public class RedisCacheService : ICacheService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Erro ao ler do cache Redis: {Key}", key);
-            return null; // Degradação graciosa
+            return null;
         }
     }
 

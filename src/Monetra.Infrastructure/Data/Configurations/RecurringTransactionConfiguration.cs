@@ -57,7 +57,7 @@ public class RecurringTransactionConfiguration : IEntityTypeConfiguration<Recurr
         builder.Property(r => r.DayOfMonth)
             .HasColumnName("day_of_month");
 
-        builder.Property(r => r.DayOfWeek)
+        builder.Property(r => r.DayOfWeekNumber)
             .HasColumnName("day_of_week");
 
         builder.Property(r => r.MonthOfYear)

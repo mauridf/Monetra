@@ -3,7 +3,7 @@ using Monetra.Core.Exceptions;
 
 namespace Monetra.Core.Entities;
 
-public class Person : Entity<Guid>
+public class Person : AggregateRoot<Guid>
 {
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;

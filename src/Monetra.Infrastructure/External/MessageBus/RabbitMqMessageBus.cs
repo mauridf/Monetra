@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Monetra.Core.Interfaces;
@@ -9,13 +8,10 @@ using RabbitMQ.Client.Events;
 
 namespace Monetra.Infrastructure.External.MessageBus;
 
-/// <summary>
-/// Implementação do message bus usando RabbitMQ.
-/// </summary>
-public class RabbitMqMessageBus : IMessageBus, IDisposable
+public class RabbitMqMessageBus : IMessageBus, IAsyncDisposable
 {
-    private readonly IConnection _connection;
-    private readonly IModel _channel;
+    private IConnection? _connection;
+    private IChannel? _channel;
     private readonly ILogger<RabbitMqMessageBus> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -36,14 +32,13 @@ public class RabbitMqMessageBus : IMessageBus, IDisposable
             HostName = host,
             Port = port,
             UserName = username,
-            Password = password,
-            DispatchConsumersAsync = true
+            Password = password
         };
 
         try
         {
-            _connection = factory.CreateConnection();
-            _channel = _connection.CreateModel();
+            _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
+            _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
             _logger.LogInformation("Conectado ao RabbitMQ em {Host}:{Port}", host, port);
         }
         catch (Exception ex)
@@ -53,34 +48,36 @@ public class RabbitMqMessageBus : IMessageBus, IDisposable
         }
     }
 
-    public Task PublishAsync<T>(string queueName, T message, CancellationToken cancellationToken = default) where T : class
+    public async Task PublishAsync<T>(string queueName, T message, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            // Declarar fila (idempotente)
-            _channel.QueueDeclare(
+            await _channel!.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null);
+                arguments: null,
+                cancellationToken: cancellationToken);
 
             var json = JsonSerializer.Serialize(message, JsonOptions);
             var body = Encoding.UTF8.GetBytes(json);
 
-            var properties = _channel.CreateBasicProperties();
-            properties.Persistent = true; // Mensagem persistente
-            properties.ContentType = "application/json";
+            var properties = new BasicProperties
+            {
+                Persistent = true,
+                ContentType = "application/json"
+            };
 
-            _channel.BasicPublish(
+            await _channel.BasicPublishAsync(
                 exchange: "",
                 routingKey: queueName,
+                mandatory: false,
                 basicProperties: properties,
-                body: body);
+                body: body,
+                cancellationToken: cancellationToken);
 
             _logger.LogDebug("Mensagem publicada na fila '{QueueName}': {MessageType}", queueName, typeof(T).Name);
-
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -89,20 +86,21 @@ public class RabbitMqMessageBus : IMessageBus, IDisposable
         }
     }
 
-    public Task SubscribeAsync<T>(string queueName, Func<T, Task> handler, CancellationToken cancellationToken = default) where T : class
+    public async Task SubscribeAsync<T>(string queueName, Func<T, Task> handler, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            _channel.QueueDeclare(
+            await _channel!.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null);
+                arguments: null,
+                cancellationToken: cancellationToken);
 
             var consumer = new AsyncEventingBasicConsumer(_channel);
 
-            consumer.Received += async (_, ea) =>
+            consumer.ReceivedAsync += async (_, ea) =>
             {
                 try
                 {
@@ -113,25 +111,24 @@ public class RabbitMqMessageBus : IMessageBus, IDisposable
                     if (message != null)
                     {
                         await handler(message);
-                        _channel.BasicAck(ea.DeliveryTag, false);
+                        await _channel.BasicAckAsync(ea.DeliveryTag, false, cancellationToken);
                         _logger.LogDebug("Mensagem processada da fila '{QueueName}'", queueName);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Erro ao processar mensagem da fila '{QueueName}'", queueName);
-                    _channel.BasicNack(ea.DeliveryTag, false, true); // Rejeitar e reenfileirar
+                    await _channel.BasicNackAsync(ea.DeliveryTag, false, true, cancellationToken);
                 }
             };
 
-            _channel.BasicConsume(
+            await _channel.BasicConsumeAsync(
                 queue: queueName,
                 autoAck: false,
-                consumer: consumer);
+                consumer: consumer,
+                cancellationToken: cancellationToken);
 
             _logger.LogInformation("Assinatura criada na fila '{QueueName}'", queueName);
-
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -142,16 +139,23 @@ public class RabbitMqMessageBus : IMessageBus, IDisposable
 
     public async Task PublishWithOutboxAsync<T>(string queueName, T message, CancellationToken cancellationToken = default) where T : class
     {
-        // Padrão Outbox: publica mensagem e garante persistência
         await PublishAsync(queueName, message, cancellationToken);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _channel?.Close();
-        _connection?.Close();
-        _channel?.Dispose();
-        _connection?.Dispose();
+        if (_channel != null)
+        {
+            await _channel.CloseAsync();
+            await _channel.DisposeAsync();
+        }
+
+        if (_connection != null)
+        {
+            await _connection.CloseAsync();
+            await _connection.DisposeAsync();
+        }
+
         GC.SuppressFinalize(this);
     }
 }
