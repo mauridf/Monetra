@@ -19,9 +19,12 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
   </ItemGroup>
 
+  <!-- Embed Scripts SQL como recursos -->
   <ItemGroup>
-    <Folder Include="Data\Configurations\" />
-    <Folder Include="Data\Interceptors\" />
+    <EmbeddedResource Include="Data\Migrations\Scripts\*.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Data\Migrations\Scripts\" />
     <Folder Include="External\Cache\" />
     <Folder Include="External\MessageBus\" />
