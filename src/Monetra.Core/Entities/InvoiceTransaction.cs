@@ -10,7 +10,7 @@ public class InvoiceTransaction : Entity<Guid>
     public Guid? CategoryId { get; private set; }
     public TransactionCategory? Category { get; private set; }
 
-    public string Description { get; private set; }
+    public string Description { get; private set; } = null!;
     public decimal Amount { get; private set; }
     public DateOnly PurchaseDate { get; private set; }
 

@@ -7,7 +7,7 @@ public class FinancialGoal : Entity<Guid>
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;
 
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public decimal TargetAmount { get; private set; }
     public decimal CurrentAmount { get; private set; }

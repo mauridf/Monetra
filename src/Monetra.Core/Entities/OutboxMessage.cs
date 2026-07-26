@@ -2,11 +2,11 @@ namespace Monetra.Core.Entities;
 
 public class OutboxMessage : Entity<Guid>
 {
-    public string Type { get; private set; }
-    public string Content { get; private set; } // JSON
+    public string Type { get; private set; } = null!;
+    public string Content { get; private set; } = null!; // JSON
     public string? Headers { get; private set; } // JSON
 
-    public string Status { get; private set; } // pending, processing, sent, failed
+    public string Status { get; private set; } = null!; // pending, processing, sent, failed
     public int RetryCount { get; private set; }
     public int MaxRetries { get; private set; }
     public string? LastError { get; private set; }

@@ -8,9 +8,9 @@ namespace Monetra.Core.Entities;
 public class User : AggregateRoot<Guid>
 {
     // Propriedades básicas
-    public string Name { get; private set; }
-    public Email Email { get; private set; }
-    public string PasswordHash { get; private set; }
+    public string Name { get; private set; } = null!;
+    public Email Email { get; private set; } = null!;
+    public string PasswordHash { get; private set; } = null!;
 
     // Autenticação
     public DateTime? EmailVerifiedAt { get; private set; }
@@ -28,7 +28,7 @@ public class User : AggregateRoot<Guid>
     public DateTime? PremiumUntil { get; private set; }
 
     // Preferências
-    public string Currency { get; private set; }
+    public string Currency { get; private set; } = null!;
     public int FiscalYearStart { get; private set; }
     public DateTime? DeletedAt { get; private set; }
 

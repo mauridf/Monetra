@@ -31,7 +31,7 @@ public class Transfer : Entity<Guid>
     public decimal Fee { get; private set; }
     public Guid? FeeAccountId { get; private set; }
 
-    public string Status { get; private set; } // pending, completed, cancelled
+    public string Status { get; private set; } = null!; // pending, completed, cancelled
 
     private Transfer() { }
 

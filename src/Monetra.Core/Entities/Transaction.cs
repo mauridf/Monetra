@@ -28,7 +28,7 @@ public class Transaction : AggregateRoot<Guid>
     public DateOnly? CompetenceDate { get; private set; }
 
     // Descrição
-    public string Description { get; private set; }
+    public string Description { get; private set; } = null!;
     public string? Notes { get; private set; }
 
     // Informações adicionais

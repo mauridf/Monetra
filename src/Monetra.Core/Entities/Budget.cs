@@ -9,7 +9,7 @@ public class Budget : AggregateRoot<Guid>
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;
 
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     public BudgetPeriod Period { get; private set; }
     public DateOnly StartDate { get; private set; }
     public DateOnly EndDate { get; private set; }
@@ -17,7 +17,7 @@ public class Budget : AggregateRoot<Guid>
     public decimal TotalLimit { get; private set; }
     public decimal TotalSpent { get; private set; }
 
-    public string Status { get; private set; } // draft, active, completed, cancelled
+    public string Status { get; private set; } = null!; // draft, active, completed, cancelled
     public bool IsTemplate { get; private set; }
 
     // Categorias do orçamento

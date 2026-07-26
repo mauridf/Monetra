@@ -214,7 +214,7 @@ CREATE INDEX idx_transactions_category ON transactions(category_id);
 CREATE INDEX idx_transactions_type ON transactions(user_id, transaction_type, transaction_date DESC);
 CREATE INDEX idx_transactions_status ON transactions(user_id, status);
 CREATE INDEX idx_transactions_due_date ON transactions(user_id, due_date) WHERE due_date IS NOT NULL AND status = 'pending';
-CREATE INDEX idx_transactions_monthly ON transactions(user_id, transaction_type, DATE_TRUNC('month', transaction_date));
+CREATE INDEX idx_transactions_monthly ON transactions(user_id, transaction_type, DATE_TRUNC('month', transaction_date::timestamp));
 CREATE INDEX idx_transactions_search ON transactions USING gin(to_tsvector('portuguese', description));
 CREATE INDEX idx_transactions_tags ON transactions USING gin(tags);
 CREATE INDEX idx_transactions_deleted ON transactions(deleted_at) WHERE deleted_at IS NOT NULL;

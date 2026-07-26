@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Monetra.Api.Filters;
 using Monetra.Api.Middlewares;
 using Monetra.Application;
+using Npgsql;
 using Monetra.Core.Interfaces;
 using Monetra.Infrastructure;
 using Monetra.Infrastructure.Data.Migrations;
@@ -193,6 +194,41 @@ try
         if (!success)
         {
             Log.Warning("Algumas migrations falharam. Verifique os logs.");
+        }
+    }
+
+    // =============================================
+    // Seed Usuário Admin Padrão
+    // =============================================
+    if (!string.IsNullOrEmpty(connectionString))
+    {
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<Monetra.Application.Common.Interfaces.IPasswordHasher>();
+
+        try
+        {
+            using var conn = new NpgsqlConnection(connectionString);
+            conn.Open();
+
+            using var checkCmd = new NpgsqlCommand(
+                "SELECT COUNT(1) FROM users WHERE email = 'admin@monetra.com.br'", conn);
+            var exists = (long)(checkCmd.ExecuteScalar() ?? 0) > 0;
+
+            if (!exists)
+            {
+                var passwordHash = passwordHasher.Hash("Admin@123");
+                using var insertCmd = new NpgsqlCommand(@"
+                    INSERT INTO users (id, name, email, password_hash, role, is_active, email_verified_at, is_premium)
+                    VALUES (gen_random_uuid(), 'Administrador Monetra', 'admin@monetra.com.br', @hash, 'admin', true, NOW(), false)", conn);
+                insertCmd.Parameters.AddWithValue("@hash", passwordHash);
+                insertCmd.ExecuteNonQuery();
+                logger.LogInformation("Usuário admin padrão criado com sucesso!");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Não foi possível criar usuário admin padrão.");
         }
     }
 

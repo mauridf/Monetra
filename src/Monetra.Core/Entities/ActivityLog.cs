@@ -5,7 +5,7 @@ public class ActivityLog : Entity<Guid>
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;
 
-    public string Action { get; private set; }
+    public string Action { get; private set; } = null!;
     public string? EntityType { get; private set; }
     public Guid? EntityId { get; private set; }
     public string? OldValues { get; private set; } // JSON

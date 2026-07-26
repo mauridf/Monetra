@@ -9,11 +9,11 @@ public class Wallet : AggregateRoot<Guid>
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;
 
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public WalletType WalletType { get; private set; }
-    public string Icon { get; private set; }
-    public string Color { get; private set; }
+    public string Icon { get; private set; } = null!;
+    public string Color { get; private set; } = null!;
 
     // Meta
     public decimal TargetAmount { get; private set; }

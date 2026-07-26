@@ -26,7 +26,7 @@ public class Invoice : AggregateRoot<Guid>
     public decimal PaidAmount { get; private set; }
 
     // Status
-    public string Status { get; private set; } // open, closed, paid, overdue, cancelled
+    public string Status { get; private set; } = null!; // open, closed, paid, overdue, cancelled
     public Guid? PaymentTransactionId { get; private set; }
 
     // Transações da fatura

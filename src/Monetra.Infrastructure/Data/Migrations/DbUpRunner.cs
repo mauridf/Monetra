@@ -21,12 +21,15 @@ public static class DbUpRunner
         logger.LogInformation("Iniciando execução de migrations...");
 
         // Configurar DbUp com PostgreSQL
-        var upgrader = DeployChanges.To
+        var builder = DeployChanges.To
             .PostgresqlDatabase(connectionString)
             .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
             .WithTransaction()
-            .LogTo(new DbUpLogger(logger))
-            .Build();
+            .LogTo(new DbUpLogger(logger));
+
+        builder.Configure(c => c.VariablesEnabled = false);
+
+        var upgrader = builder.Build();
 
         // Verificar se o banco existe e criar se necessário
         EnsureDatabase.For.PostgresqlDatabase(connectionString);

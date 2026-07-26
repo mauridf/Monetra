@@ -7,8 +7,8 @@ public class CreditCard : Entity<Guid>
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;
 
-    public string Name { get; private set; }
-    public string Brand { get; private set; }
+    public string Name { get; private set; } = null!;
+    public string Brand { get; private set; } = null!;
     public string? LastDigits { get; private set; }
 
     // Limite
@@ -20,7 +20,7 @@ public class CreditCard : Entity<Guid>
     public int DueDay { get; private set; }
 
     // Aparência
-    public string Color { get; private set; }
+    public string Color { get; private set; } = null!;
 
     // Status
     public bool IsActive { get; private set; }

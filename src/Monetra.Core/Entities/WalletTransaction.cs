@@ -14,7 +14,7 @@ public class WalletTransaction : Entity<Guid>
     public User User { get; private set; } = null!;
 
     public decimal Amount { get; private set; }
-    public string Type { get; private set; } // contribution, withdrawal
+    public string Type { get; private set; } = null!; // contribution, withdrawal
     public string? Description { get; private set; }
     public decimal? BalanceBefore { get; private set; }
     public decimal? BalanceAfter { get; private set; }

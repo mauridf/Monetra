@@ -8,8 +8,8 @@ public class Notification : Entity<Guid>
     public User User { get; private set; } = null!;
 
     public NotificationType Type { get; private set; }
-    public string Title { get; private set; }
-    public string Message { get; private set; }
+    public string Title { get; private set; } = null!;
+    public string Message { get; private set; } = null!;
     public string? Data { get; private set; } // JSON
 
     public bool IsRead { get; private set; }

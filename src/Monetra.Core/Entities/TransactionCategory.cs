@@ -9,10 +9,10 @@ public class TransactionCategory : Entity<Guid>
     public Guid? UserId { get; private set; }
     public User? User { get; private set; }
 
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public string Icon { get; private set; }
-    public string Color { get; private set; }
+    public string Icon { get; private set; } = null!;
+    public string Color { get; private set; } = null!;
     public TransactionType TransactionType { get; private set; }
 
     // Hierarquia

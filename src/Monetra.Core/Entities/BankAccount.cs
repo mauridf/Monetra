@@ -11,7 +11,7 @@ public class BankAccount : AggregateRoot<Guid>
     public User User { get; private set; } = null!;
 
     // Dados da conta
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     public AccountType AccountType { get; private set; }
     public string? BankName { get; private set; }
     public string? BankCode { get; private set; }
@@ -25,8 +25,8 @@ public class BankAccount : AggregateRoot<Guid>
     public DateOnly? BalanceDate { get; private set; }
 
     // Aparência
-    public string Color { get; private set; }
-    public string Icon { get; private set; }
+    public string Color { get; private set; } = null!;
+    public string Icon { get; private set; } = null!;
 
     // Status
     public bool IsActive { get; private set; }
