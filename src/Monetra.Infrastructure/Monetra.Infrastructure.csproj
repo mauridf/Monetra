@@ -31,7 +31,6 @@
     <Folder Include="External\Reports\" />
     <Folder Include="External\Storage\" />
     <Folder Include="Outbox\" />
-    <Folder Include="Repositories\" />
   </ItemGroup>
 
   <PropertyGroup>
