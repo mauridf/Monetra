@@ -26,10 +26,7 @@
 
   <ItemGroup>
     <Folder Include="Data\Migrations\Scripts\" />
-    <Folder Include="External\Cache\" />
-    <Folder Include="External\MessageBus\" />
     <Folder Include="External\Reports\" />
-    <Folder Include="External\Storage\" />
     <Folder Include="Outbox\" />
   </ItemGroup>
 
