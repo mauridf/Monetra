@@ -1,6 +1,9 @@
 version: '3.8'
 
 services:
+  # =============================================
+  # PostgreSQL 16
+  # =============================================
   postgres:
     image: postgres:16-alpine
     container_name: monetra-postgres
@@ -20,6 +23,9 @@ services:
     networks:
       - monetra-network
 
+  # =============================================
+  # Redis 7
+  # =============================================
   redis:
     image: redis:7-alpine
     container_name: monetra-redis
@@ -33,6 +39,9 @@ services:
     networks:
       - monetra-network
 
+  # =============================================
+  # RabbitMQ 3.13
+  # =============================================
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: monetra-rabbitmq
@@ -40,8 +49,8 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -50,6 +59,9 @@ services:
     networks:
       - monetra-network
 
+  # =============================================
+  # MinIO (S3-compatible Storage)
+  # =============================================
   minio:
     image: minio/minio:latest
     container_name: monetra-minio
@@ -58,8 +70,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
     volumes:
       - minio_data:/data
     healthcheck:
@@ -70,18 +82,88 @@ services:
     networks:
       - monetra-network
 
+  # =============================================
+  # MailHog (Email para desenvolvimento)
+  # =============================================
   mailhog:
     image: mailhog/mailhog:latest
     container_name: monetra-mailhog
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    networks:
+      - monetra-network
+
+  # =============================================
+  # Monetra API
+  # =============================================
+  api:
+    build:
+      context: .
+      dockerfile: src/Monetra.Api/Dockerfile
+    container_name: monetra-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Application__Name=Monetra
+      - Application__Url=http://localhost:5000
+      - Application__CorsOrigins__0=http://localhost:3000
+      - Jwt__SecretKey=super-secret-key-with-at-least-512-bits-length-for-development-only
+      - Jwt__Issuer=monetra-api
+      - Jwt__Audience=monetra-app
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=monetra;Username=postgres;Password=postgres;
+      - Redis__ConnectionString=redis:6379
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Port=5672
+      - MinIo__Endpoint=minio:9000
+      - MinIo__AccessKey=minioadmin
+      - MinIo__SecretKey=minioadmin
+      - Smtp__Host=mailhog
+      - Smtp__Port=1025
+    ports:
+      - "5000:8080"
+    volumes:
+      - api_logs:/app/logs
+      - api_uploads:/app/uploads
+    networks:
+      - monetra-network
+
+  # =============================================
+  # Monetra Scheduler
+  # =============================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: src/Monetra.Scheduler/Dockerfile
+    container_name: monetra-scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=monetra;Username=postgres;Password=postgres;
+      - Redis__ConnectionString=redis:6379
+      - RabbitMq__Host=rabbitmq
     networks:
       - monetra-network
 
 volumes:
   postgres_data:
   minio_data:
+  api_logs:
+  api_uploads:
 
 networks:
   monetra-network:

@@ -1,0 +1,80 @@
+# =============================================
+# Render Deployment Configuration
+# =============================================
+
+services:
+  # =============================================
+  # PostgreSQL Database
+  # =============================================
+  - type: pserv
+    name: monetra-db
+    runtime: image
+    image: postgres:16-alpine
+    plan: free
+    envVars:
+      - key: POSTGRES_DB
+        value: monetra
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+
+  # =============================================
+  # Monetra API (Web Service)
+  # =============================================
+  - type: web
+    name: monetra-api
+    runtime: docker
+    repo: https://github.com/seu-usuario/monetra
+    branch: main
+    rootDir: .
+    dockerfilePath: src/Monetra.Api/Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Application__Name
+        value: Monetra
+      - key: Application__CorsOrigins__0
+        value: https://monetra-frontend.onrender.com
+      - key: Jwt__SecretKey
+        generateValue: true
+      - key: Jwt__Issuer
+        value: monetra-api
+      - key: Jwt__Audience
+        value: monetra-app
+      - key: Database__ConnectionString
+        fromService:
+          name: monetra-db
+          type: pserv
+          property: connectionString
+      - key: Redis__ConnectionString
+        sync: false
+      - key: RabbitMq__Host
+        sync: false
+    autoDeploy: true
+
+  # =============================================
+  # Monetra Scheduler (Background Worker)
+  # =============================================
+  - type: worker
+    name: monetra-scheduler
+    runtime: docker
+    repo: https://github.com/seu-usuario/monetra
+    branch: main
+    rootDir: .
+    dockerfilePath: src/Monetra.Scheduler/Dockerfile
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__ConnectionString
+        fromService:
+          name: monetra-db
+          type: pserv
+          property: connectionString

@@ -1,0 +1,81 @@
+name: Monetra CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================
+  # Build e Testes
+  # =============================================
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restaurar dependências
+      run: dotnet restore Monetra.sln
+
+    - name: Build
+      run: dotnet build Monetra.sln --configuration Release --no-restore
+
+    - name: Testes Unitários
+      run: dotnet test tests/Monetra.Tests.Unit --configuration Release --no-build --verbosity normal
+
+    - name: Testes de Integração
+      run: dotnet test tests/Monetra.Tests.Integration --configuration Release --no-build --verbosity normal
+
+  # =============================================
+  # Docker Build & Push
+  # =============================================
+  docker:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Login no GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build & Push API
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: src/Monetra.Api/Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:latest
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }}
+
+    - name: Build & Push Scheduler
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: src/Monetra.Scheduler/Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/scheduler:latest
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/scheduler:${{ github.sha }}
